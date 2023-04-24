@@ -1,43 +1,29 @@
 import { Stack, Title } from '@mantine/core'
-import { WalletDisconnectButton, WalletMultiButton } from '@pubkeyapp/wallet-adapter-mantine-ui'
-import { useWallet } from '@solana/wallet-adapter-react'
-import { UiFull, UiLoader } from '../ui/ui-loader'
+import { useEffect } from 'react'
+import { useAtp } from '../atp/atp-provider'
 
 export function HomeFeature() {
-  const { connected, connecting } = useWallet()
-  if (connecting) {
-    return <UiLoader type="full" />
-  }
+  const { atp } = useAtp()
 
-  return connected ? <HomeConnected /> : <HomeNotConnected />
-}
+  useEffect(() => {
+    if (atp.hasSession) {
+      console.log(`Welcome back, ${atp.session?.handle} ${atp.session?.did} !`)
+    } else {
+      console.log(`Welcome to the app!`)
 
-export function HomeNotConnected() {
+      // atp
+      //   .login({
+      //     password: 'Moeilijk123!',
+      //     identifier: 'beeman.dev',
+      //   })
+      //   .then((res) => {
+      //     console.log('Login result', res)
+      //   })
+    }
+  }, [])
   return (
-    <UiFull>
-      <Stack spacing={64}>
-        <Title>Connect a Solana wallet.</Title>
-        <WalletMultiButton />
-      </Stack>
-    </UiFull>
+    <Stack spacing={64}>
+      <Title>Hi.</Title>
+    </Stack>
   )
-}
-
-export function HomeConnected() {
-  const { publicKey } = useWallet()
-  return (
-    <UiFull>
-      <Stack spacing={64}>
-        <Title>Connected as {ellipsify(`${publicKey}`)}.</Title>
-        <WalletDisconnectButton />
-      </Stack>
-    </UiFull>
-  )
-}
-
-export function ellipsify(str = '', len = 4) {
-  if (str.length > 30) {
-    return str.substring(0, len) + '..' + str.substring(str.length - len, str.length)
-  }
-  return str
 }

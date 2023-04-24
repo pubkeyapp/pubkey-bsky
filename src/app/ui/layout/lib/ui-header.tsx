@@ -28,10 +28,30 @@ export function UiHeader({ logo }: UiHeaderProps) {
   return (
     <Header height={60}>
       <Flex className={classes.header}>
-        <Group spacing={2}>
+        <Group spacing={12}>
           <Anchor component={Link} to="/" className={classes.logoLink}>
             {logo}
           </Anchor>
+          <Group>
+            <Anchor component={Link} to="/home">
+              Home
+            </Anchor>
+            <Anchor component={Link} to="/search">
+              Search
+            </Anchor>
+            <Anchor component={Link} to="/notifications">
+              Notifications
+            </Anchor>
+            <Anchor component={Link} to="/profile">
+              Profile
+            </Anchor>
+            <Anchor component={Link} to="/settings">
+              Settings
+            </Anchor>
+            <Anchor component={Link} to="/dev">
+              Dev
+            </Anchor>
+          </Group>
         </Group>
         <Group>
           <WalletMultiButton variant="default" />

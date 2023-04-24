@@ -1,28 +1,33 @@
 import { Container } from '@mantine/core'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
-import { DevFeature } from './features/dev-feature'
-import { HomeFeature } from './features/home-feature'
+import { QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter } from 'react-router-dom'
+import { AppRoutes } from './app.routes'
+import { AtpProvider } from './atp/atp-provider'
+import { queryClient } from './atp/query-client'
 import { SolanaProvider } from './solana-provider'
 import { UiLayout } from './ui/layout'
 import { UiThemeProvider } from './ui/theme'
-import { UiNotFound } from './ui/ui-not-found'
 
 export function App() {
   return (
     <BrowserRouter>
       <UiThemeProvider>
-        <SolanaProvider>
-          <UiLayout>
-            <Container>
-              <Routes>
-                <Route path="/" element={<HomeFeature />} />
-                <Route path="/dev" element={<DevFeature />} />
-                <Route path="*" element={<UiNotFound />} />
-              </Routes>
-            </Container>
-          </UiLayout>
-        </SolanaProvider>
+        <QueryClientProvider client={queryClient}>
+          <AtpProvider>
+            <SolanaProvider>
+              <UiLayout>
+                <Container>
+                  <AppRoutes />
+                </Container>
+              </UiLayout>
+            </SolanaProvider>
+          </AtpProvider>
+        </QueryClientProvider>
       </UiThemeProvider>
     </BrowserRouter>
   )
+}
+
+export function LoginFeature() {
+  return <div>Login</div>
 }
