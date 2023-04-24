@@ -26,7 +26,7 @@ export function NotificationItem({
                 <ProfileAvatar profile={notification.author} isLink />
               </div>
               <div>
-                <Anchor component={Link} to={`/${notification.author.handle}`}>
+                <Anchor component={Link} to={`/profile/${notification.author.handle}`}>
                   {notification.author.displayName ?? notification.author.handle}
                 </Anchor>{' '}
                 <span>{reasonToLabel[notification.reason]}</span>

@@ -16,7 +16,7 @@ export function App() {
           <AtpProvider>
             <SolanaProvider>
               <UiLayout>
-                <Container>
+                <Container h="100%">
                   <AppRoutes />
                 </Container>
               </UiLayout>
@@ -26,8 +26,4 @@ export function App() {
       </UiThemeProvider>
     </BrowserRouter>
   )
-}
-
-export function LoginFeature() {
-  return <div>Login</div>
 }

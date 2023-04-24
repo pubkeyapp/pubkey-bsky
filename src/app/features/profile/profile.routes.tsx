@@ -1,12 +1,19 @@
-import { Stack, Title } from '@mantine/core'
-import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAtp } from '../../atp/atp-provider'
+import { ProfileDetailFeature } from './profile-detail.feature'
 
 export function ProfileRoutes() {
   return (
     <Routes>
       <Route index element={<ProfileIndexFeature />} />
-      <Route path=":handle" element={<ProfileDetailFeature />} />
+      <Route
+        path=":handle/*"
+        element={
+          <Routes>
+            <Route path="*" element={<ProfileDetailFeature />} />
+          </Routes>
+        }
+      />
     </Routes>
   )
 }
@@ -18,14 +25,4 @@ export function ProfileIndexFeature() {
     return null
   }
   return <Navigate to={`/profile/${profile?.handle}`} replace />
-}
-
-export function ProfileDetailFeature() {
-  const { handle } = useParams<{ handle: string }>()
-
-  return (
-    <Stack>
-      <Title size="h2">Profile: {handle}</Title>
-    </Stack>
-  )
 }

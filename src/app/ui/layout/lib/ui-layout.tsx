@@ -10,7 +10,6 @@ export function UiLayout({ children }: { children: ReactNode }) {
     <Flex mih="100vh" h="100vh" direction="column" justify="space-between">
       <Stack sx={{ flexGrow: 1 }}>
         <UiHeader logo={logo} />
-
         <Box h="100%">
           <Suspense fallback={<UiLoader type="full" />}>{children}</Suspense>
         </Box>

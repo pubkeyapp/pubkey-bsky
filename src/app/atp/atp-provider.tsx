@@ -9,8 +9,10 @@ export interface AtpProviderContext {
   bsky: BskyNS
   authenticated: boolean
   loading: boolean
+  logout: () => void
   error?: unknown | undefined
   profile?: ProfileViewDetailed | undefined
+  refresh: () => Promise<void>
   session?: AtpSessionData | undefined
 }
 
@@ -22,11 +24,11 @@ export function AtpProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileViewDetailed | undefined>(undefined)
   const [session, setSession] = useState<AtpSessionData | undefined>(undefined)
 
-  useEffect(() => {
-    console.log(`AtpProvider: getting account`)
-    getAccount()
+  function refresh() {
+    console.log(`AtpProvider refresh: getting account`)
+    return getAccount()
       .then((res) => {
-        console.log(`AtpProvider: got account`, res)
+        console.log(`AtpProvider refresh: got account`, res)
         if (res) {
           setProfile(res.profile)
           setSession(res.session)
@@ -37,8 +39,13 @@ export function AtpProvider({ children }: { children: ReactNode }) {
         setLoading(false)
       })
       .catch((err) => {
+        console.error(`AtpProvider refresh: error`, err)
         setError(err)
       })
+  }
+
+  useEffect(() => {
+    refresh()
   }, [])
 
   const value: AtpProviderContext = {
@@ -47,7 +54,12 @@ export function AtpProvider({ children }: { children: ReactNode }) {
     bsky,
     error,
     loading,
+    logout: () => {
+      localStorage.removeItem(storageKeys.session.$)
+      window.location.reload()
+    },
     profile,
+    refresh,
     session,
   }
   return <AtpContext.Provider value={value}>{children}</AtpContext.Provider>
