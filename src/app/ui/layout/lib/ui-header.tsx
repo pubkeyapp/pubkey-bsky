@@ -48,9 +48,6 @@ export function UiHeader({ logo }: UiHeaderProps) {
               <Anchor component={Link} to="/profile">
                 Profile
               </Anchor>
-              <Anchor component={Link} to="/settings">
-                Settings
-              </Anchor>
               <Anchor component={Link} to="/dev">
                 Dev
               </Anchor>
@@ -58,7 +55,6 @@ export function UiHeader({ logo }: UiHeaderProps) {
           ) : null}
         </Group>
         <Group>
-          {/*<WalletMultiButton variant="default" />*/}
           <HeaderProfileButton />
         </Group>
       </Flex>

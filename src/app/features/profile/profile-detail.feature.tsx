@@ -1,34 +1,23 @@
-import { RichText, RichTextProps, RichTextSegment } from '@atproto/api'
+import { RichText } from '@atproto/api'
 import { ProfileViewDetailed } from '@atproto/api/dist/client/types/app/bsky/actor/defs'
-import {
-  Anchor,
-  Avatar,
-  Box,
-  Group,
-  Image,
-  Paper,
-  Stack,
-  Text,
-  TypographyStylesProvider,
-  useMantineTheme,
-} from '@mantine/core'
+import { Avatar, Box, Group, Image, Paper, Stack, Text, useMantineTheme } from '@mantine/core'
+import { IconVolumeOff } from '@tabler/icons-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import React, { useEffect, useState } from 'react'
-import { Link, Route, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLoaderData, useNavigate, useParams, useRevalidator } from 'react-router-dom'
 import { atp, bsky } from '../../atp/atp-service'
-import { UiDebug } from '../../ui/ui-debug'
+import { followUser } from '../../atp/followUser'
+import { useTimelineFilter } from '../../atp/lib/useTimelineFilter'
+import { queryKeys } from '../../atp/query-keys'
+import { unfollowUser } from '../../atp/unfollowUser'
+import { UiDebug, UiDebugModal } from '../../ui/ui-debug'
 import { UiFull, UiLoader } from '../../ui/ui-loader'
 import { UiTabRoutes } from '../../ui/ui-tab-routes'
 import { ProfileDetailFollowersFeature } from './profile-detail-followers.feature'
 import { ProfileDetailFollowsFeature } from './profile-detail-follows.feature'
-
-type TruncateOptions = {
-  max: number
-  ellipsis?: boolean
-}
-
-export function truncate(postText: string, { max, ellipsis = true }: TruncateOptions) {
-  return postText.slice(0, max) + (postText.length > max && ellipsis ? '…' : '')
-}
+import { RichTextRenderer } from './rich-text.renderer'
+import { Timeline, TimelineQueryFn } from './Timeline'
+import { TimelineFilter } from './TimelineFilter'
 
 export async function loadProfile({ handle }: { handle: string }) {
   const resp = await bsky.actor.getProfile({
@@ -121,67 +110,76 @@ export function ProfileDetailFeature() {
         <UiTabRoutes
           grow={false}
           tabs={[
-            { value: 'posts', label: 'Posts', component: <UiDebug data={'POSTS'} open /> },
-            { value: 'replies', label: 'Posts & replies', component: <UiDebug data={'REPLIES'} open /> },
-            { value: 'follows', label: 'Following', component: <ProfileDetailFollowsFeature /> },
-            { value: 'followers', label: 'Followers', component: <ProfileDetailFollowersFeature /> },
+            {
+              value: 'posts',
+              label: 'Posts',
+              component: <ProfileDetailsPostsFeature profile={profile} />,
+            },
+            {
+              value: 'replies',
+              label: 'Posts & replies',
+              component: (
+                <Stack p="md">
+                  <UiDebug data={'REPLIES'} open />
+                </Stack>
+              ),
+            },
+            { value: 'follows', label: 'Following', component: <ProfileDetailFollowsFeature profile={profile} /> },
+            { value: 'followers', label: 'Followers', component: <ProfileDetailFollowersFeature profile={profile} /> },
           ]}
         />
+        <UiDebugModal data={profile} />
       </Paper>
     </Stack>
   )
 }
 
-type Props = RichTextProps & {
-  className?: string
-}
-
-export function RichTextRenderer({ text, facets, className }: Props) {
-  const content = React.useMemo(() => {
-    let rt: RichText
-    try {
-      rt = new RichText({ text, facets })
-    } catch (e) {
-      console.error(e)
-      return <span>Could&apos;nt parse RichText</span>
-    }
-    return (
-      <>
-        {Array.from(rt.segments()).map((seg) => (
-          <SegmentToElement
-            key={
-              seg.facet ? `${seg.facet.index.byteStart}-${seg.facet.index.byteEnd}` : seg.text // FIXME: whitespace are easily duplicated
-            }
-            segment={seg}
-          />
-        ))}
-      </>
-    )
-  }, [facets, text])
-
-  return <TypographyStylesProvider className={className}>{content}</TypographyStylesProvider>
-}
-
-function SegmentToElement({ segment }: { segment: RichTextSegment }): React.ReactElement {
-  if (segment.isLink() && segment.link) {
-    return (
-      <Anchor
-        href={segment.link.uri}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={(e) => void e.stopPropagation()}
-      >
-        {/* Strip URL scheme and truncate */}
-        {truncate(segment.text.replace(/^.*:\/\//, ''), { max: 28 })}
-      </Anchor>
-    )
-  } else if (segment.isMention() && segment.mention) {
-    return (
-      <Anchor component={Link} to={`/profile/${segment.mention.did}`} onClick={(e) => void e.stopPropagation()}>
-        {segment.text}
-      </Anchor>
-    )
-  } else {
-    return <>{segment.text}</>
+export function ProfileDetailsPostsFeature({ profile }: { profile: ProfileViewDetailed }) {
+  const queryKey = queryKeys.feed.author.$(profile.handle)
+  const queryFn: TimelineQueryFn<typeof queryKey> = async ({ queryKey, pageParam }) => {
+    const resp = await bsky.feed.getAuthorFeed({
+      actor: queryKey[1].authorId,
+      limit: 30,
+      // passing `undefined` breaks the query somehow
+      ...(pageParam ? { cursor: pageParam.cursor } : {}),
+    })
+    // TODO: ?????
+    if (!resp.success) throw new Error('Fetch error')
+    return resp.data
   }
+  const { timelineFilter } = useTimelineFilter()
+  const fetchLatest = React.useCallback(
+    async () =>
+      timelineFilter(
+        (
+          await bsky.feed.getAuthorFeed({
+            actor: profile.handle,
+            limit: 1,
+          })
+        ).data.feed,
+      ).at(0),
+    [profile.handle, timelineFilter],
+  )
+
+  const muted = !!profile.viewer?.muted
+
+  return (
+    <Box>
+      <div>
+        {muted ? (
+          <p>
+            <IconVolumeOff aria-hidden />
+            Muted
+          </p>
+        ) : (
+          <div hidden={muted}>
+            <TimelineFilter />
+            <Timeline queryKey={queryKey} queryFn={queryFn} fetchNewLatest={fetchLatest} filter={timelineFilter} />
+          </div>
+        )}
+      </div>
+    </Box>
+  )
 }
+
+const UNFOLLOW_DESCRIBE_ID = 'unfollow-describe' as const
